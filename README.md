@@ -49,9 +49,9 @@ Or in Xcode:
 
 ## Requirements
 
-- iOS 18.0+ / macOS 15.0+
+- iOS 17.0+ / macOS 14.0+
 - Swift 5.10+
-- Xcode 16.0+
+- Xcode 15.0+
 
 ## Quick Start
 
@@ -342,4 +342,4 @@ Built for [@guideaiapp](https://github.com/guideaiapp) to explore enhanced reaso
 
 ---
 
-**Note**: This package wraps concepts from Apple's FoundationModels framework. Actual integration with LanguageModelSession APIs requires iOS 18+ SDK and proper device capabilities. The current implementation provides the architecture and can be connected to real Foundation Models APIs when available.
+**Note**: This package wraps concepts from Apple's FoundationModels framework. Actual integration with LanguageModelSession APIs requires iOS 18+ / macOS 15+ SDK and proper device capabilities. The current implementation provides the architecture and can be connected to real Foundation Models APIs when available. The package itself is compatible with iOS 17+ / macOS 14+ to support broader adoption.
