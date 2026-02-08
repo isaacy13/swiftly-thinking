@@ -254,25 +254,25 @@ public struct PromptTemplates {
         "primary_intent": "string",
         "key_elements": ["string"],
         "ambiguities": ["string"],
-        "confidence": "High|Medium|Low"
+        "confidence": 0.85
       },
       "reasoning_trace": [
         {
           "step": 1,
           "description": "string",
           "rationale": "string",
-          "confidence": "High|Medium|Low"
+          "confidence": 0.90
         }
       ],
       "decisions_explained": [
         {
           "decision": "string",
           "reasoning": "string",
-          "confidence": "High|Medium|Low"
+          "confidence": 0.88
         }
       ],
       "final_answer": "string",
-      "overall_confidence": "High|Medium|Low"
+      "overall_confidence": 0.92
     }
     """
     

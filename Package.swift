@@ -18,10 +18,7 @@ let package = Package(
     targets: [
         .target(
             name: "SwiftlyThinking",
-            dependencies: [],
-            swiftSettings: [
-                .enableUpcomingFeature("BareSlashRegexLiterals")
-            ]
+            dependencies: []
         ),
         .testTarget(
             name: "SwiftlyThinkingTests",

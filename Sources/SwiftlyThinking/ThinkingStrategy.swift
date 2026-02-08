@@ -31,7 +31,7 @@ public enum ThinkingStrategy: String, Codable, Sendable {
 }
 
 /// Configuration for thinking modes
-public struct ThinkingConfiguration: Sendable {
+public struct ThinkingConfiguration: Sendable, Codable {
     /// The primary thinking strategy to use
     public let strategy: ThinkingStrategy
     
@@ -63,8 +63,8 @@ public struct ThinkingConfiguration: Sendable {
         customPrompts: [String: String]? = nil
     ) {
         self.strategy = strategy
-        self.maxIterations = maxIterations
-        self.parallelPaths = parallelPaths
+        self.maxIterations = max(1, maxIterations) // Ensure at least 1 iteration
+        self.parallelPaths = max(1, parallelPaths) // Ensure at least 1 parallel path
         self.exposeReasoning = exposeReasoning
         self.includeConfidence = includeConfidence
         self.useStructuredOutputs = useStructuredOutputs

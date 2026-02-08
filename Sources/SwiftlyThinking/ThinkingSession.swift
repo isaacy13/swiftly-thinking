@@ -92,9 +92,8 @@ public struct ThinkingSession: Sendable {
     /// - Parameter original: The original prompt
     /// - Returns: A refined version of the prompt
     public func refinePrompt(original: String) async throws -> String {
-        let prompt = PromptTemplates.promptRefinementTemplate(for: original)
-        
         // In a real implementation, this would call LanguageModelSession
+        // with PromptTemplates.promptRefinementTemplate(for: original)
         // For now, we simulate the refinement
         let refinedPrompt = """
         Refined version of: "\(original)"
@@ -109,9 +108,8 @@ public struct ThinkingSession: Sendable {
     /// - Parameter userPrompt: The user's request
     /// - Returns: Intent analysis structure
     public func analyzeIntent(userPrompt: String) async throws -> IntentAnalysis {
-        let prompt = PromptTemplates.intentAnalysisPrompt(for: userPrompt)
-        
         // In a real implementation, this would call LanguageModelSession
+        // with PromptTemplates.intentAnalysisPrompt(for: userPrompt)
         // For now, we provide a simulated analysis
         return IntentAnalysis(
             primaryIntent: "Analyze and understand the user's request",
@@ -125,10 +123,8 @@ public struct ThinkingSession: Sendable {
     /// - Parameter complexPrompt: The complex query
     /// - Returns: A structured decomposition with reasoning
     public func decomposeAndChain(complexPrompt: String) async throws -> String {
-        let prompt = PromptTemplates.decompositionPrompt(for: complexPrompt)
-        
         // In a real implementation, this would:
-        // 1. Call the model to decompose the prompt
+        // 1. Call the model with PromptTemplates.decompositionPrompt(for: complexPrompt)
         // 2. Execute each sub-task sequentially
         // 3. Combine results with reasoning traces
         
@@ -153,7 +149,8 @@ public struct ThinkingSession: Sendable {
     // MARK: - Private Implementation Methods
     
     private func performChainOfThought(userPrompt: String) async throws -> ReasonedResponse {
-        let prompt = PromptTemplates.chainOfThoughtPrompt(for: userPrompt)
+        // In a real implementation, this would call LanguageModelSession
+        // with PromptTemplates.chainOfThoughtPrompt(for: userPrompt)
         
         // Simulate chain-of-thought reasoning
         let reasoningSteps = [
@@ -208,11 +205,8 @@ public struct ThinkingSession: Sendable {
     }
     
     private func performReflection(userPrompt: String) async throws -> ReasonedResponse {
-        // First generate a draft
-        let draftResponse = "Initial response to: \(userPrompt)"
-        
-        // Then reflect on it
-        let reflectionPrompt = PromptTemplates.reflectionPrompt(for: draftResponse)
+        // First generate a draft, then reflect on it using
+        // PromptTemplates.reflectionPrompt(for: draftResponse) in a real implementation
         
         let reasoningSteps = [
             ReasoningStep(
@@ -258,7 +252,8 @@ public struct ThinkingSession: Sendable {
     }
     
     private func performDecomposition(userPrompt: String) async throws -> ReasonedResponse {
-        let decompositionPrompt = PromptTemplates.decompositionPrompt(for: userPrompt)
+        // In a real implementation, this would use
+        // PromptTemplates.decompositionPrompt(for: userPrompt)
         
         let reasoningSteps = [
             ReasoningStep(
@@ -313,6 +308,13 @@ public struct ThinkingSession: Sendable {
     private func performSelfConsistency(userPrompt: String) async throws -> ReasonedResponse {
         let pathCount = configuration.parallelPaths
         
+        // Generate dynamic path descriptions based on pathCount
+        let pathDetails = (1...pathCount).map { i -> String in
+            let approaches = ["Direct", "Analytical", "Systematic", "Iterative", "Exploratory"]
+            let approach = approaches[min(i - 1, approaches.count - 1)]
+            return "Path \(i): \(approach) approach"
+        }
+        
         // Simulate generating multiple reasoning paths
         let reasoningSteps = [
             ReasoningStep(
@@ -320,7 +322,7 @@ public struct ThinkingSession: Sendable {
                 description: "Generate \(pathCount) independent reasoning paths",
                 rationale: "Multiple perspectives increase reliability",
                 confidence: .high,
-                details: ["Path 1: Direct approach", "Path 2: Analytical approach", "Path 3: Systematic approach"]
+                details: pathDetails
             ),
             ReasoningStep(
                 stepNumber: 2,
@@ -351,7 +353,8 @@ public struct ThinkingSession: Sendable {
     }
     
     private func performExploration(userPrompt: String) async throws -> ReasonedResponse {
-        let explorationPrompt = PromptTemplates.alternativesExplorationPrompt(for: userPrompt)
+        // In a real implementation, this would use
+        // PromptTemplates.alternativesExplorationPrompt(for: userPrompt)
         
         let alternatives = [
             Alternative(
@@ -452,7 +455,8 @@ public struct ThinkingSession: Sendable {
     }
     
     private func performFullThinking(userPrompt: String) async throws -> ReasonedResponse {
-        let fullPrompt = PromptTemplates.fullThinkingPrompt(for: userPrompt)
+        // In a real implementation, this would use
+        // PromptTemplates.fullThinkingPrompt(for: userPrompt)
         
         // Analyze intent
         let intentAnalysis = IntentAnalysis(
@@ -510,7 +514,8 @@ public struct ThinkingSession: Sendable {
     }
     
     private func performLightThinking(userPrompt: String) async throws -> ReasonedResponse {
-        let lightPrompt = PromptTemplates.lightThinkingPrompt(for: userPrompt)
+        // In a real implementation, this would use
+        // PromptTemplates.lightThinkingPrompt(for: userPrompt)
         
         let reasoningSteps = [
             ReasoningStep(
@@ -549,8 +554,8 @@ public struct ThinkingSession: Sendable {
     }
     
     private func performCustomThinking(userPrompt: String) async throws -> ReasonedResponse {
-        // Use custom prompts if provided
-        let customPrompt = configuration.customPrompts?["main"] ?? "Process this request: \(userPrompt)"
+        // Use custom prompts if provided, or default prompt in a real implementation
+        // let customPrompt = configuration.customPrompts?["main"] ?? "Process this request: \(userPrompt)"
         
         let reasoningSteps = [
             ReasoningStep(
@@ -585,7 +590,7 @@ public struct ThinkingSession: Sendable {
 // MARK: - Supporting Types
 
 /// Definition of a tool that can be called by the model
-public struct ToolDefinition: Sendable {
+public struct ToolDefinition: Sendable, Codable {
     public let name: String
     public let description: String
     public let parameters: [String: ToolParameter]
@@ -598,7 +603,7 @@ public struct ToolDefinition: Sendable {
 }
 
 /// Parameter definition for a tool
-public struct ToolParameter: Sendable {
+public struct ToolParameter: Sendable, Codable {
     public let type: String
     public let description: String
     public let required: Bool
@@ -611,8 +616,8 @@ public struct ToolParameter: Sendable {
 }
 
 /// Entry in a conversation transcript
-public struct TranscriptEntry: Sendable {
-    public enum Role: String, Sendable {
+public struct TranscriptEntry: Sendable, Codable {
+    public enum Role: String, Sendable, Codable {
         case user
         case assistant
         case system

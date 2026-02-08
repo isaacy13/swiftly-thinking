@@ -1,12 +1,14 @@
 # SwiftlyThinking 🧠
 
-A Swift Package that enhances on-device Apple Foundation Models with transparent, explainable reasoning capabilities. Built for iOS 18+ and macOS 15+.
+A Swift Package that enhances on-device Apple Foundation Models with transparent, explainable reasoning capabilities.
 
 ## Overview
 
 SwiftlyThinking wraps and extends the FoundationModels framework to encourage deeper reasoning in on-device Apple Intelligence models. Instead of providing direct responses, it expands on user requests with explainable, step-by-step reasoning—exposing what the model is considering, why it's making decisions, and how it refines outputs.
 
 **Key Philosophy:** Everything is achieved through intelligent prompting, chaining, and structured handling. No modifications to the underlying model—just better orchestration and visibility.
+
+**Platform Requirements:** This package is designed for use with Apple's Foundation Models framework, which requires iOS 18+ and macOS 15+ for actual model integration. The package itself is compatible with iOS 17+ and macOS 14+ to support broader adoption, but real Foundation Models functionality is only available on iOS 18+ / macOS 15+ devices.
 
 ## Features
 
