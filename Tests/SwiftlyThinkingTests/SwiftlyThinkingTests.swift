@@ -135,7 +135,8 @@ final class SwiftlyThinkingTests: XCTestCase {
     }
 
     func testStreamingUpdatesTranscriptAndReasoning() async throws {
-        let longAnswer = String(repeating: "A", count: 250)
+        let longAnswerLength = 250
+        let longAnswer = String(repeating: "A", count: longAnswerLength)
         let structured = """
         {"intent_analysis":"Intent","reasoning_trace":["Sensitive reasoning"],"decisions_explained":["Decision"],"final_answer":"\(longAnswer)","confidence":"high"}
         """

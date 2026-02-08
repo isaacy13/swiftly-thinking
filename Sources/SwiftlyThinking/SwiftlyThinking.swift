@@ -57,6 +57,8 @@ public struct ThinkingOptions: Codable, Sendable, Equatable {
     public var reasoningRedaction: ReasoningRedaction
     public var streamReasoning: Bool
     public var decodingFallback: StructuredOutputFallback
+    public var summaryCharacterLimit: Int
+    public var streamChunkSize: Int
 
     public init(
         strategy: ThinkingStrategy = .cot,
@@ -68,7 +70,9 @@ public struct ThinkingOptions: Codable, Sendable, Equatable {
         toolTimeout: TimeInterval? = 10,
         reasoningRedaction: ReasoningRedaction = .redacted,
         streamReasoning: Bool = false,
-        decodingFallback: StructuredOutputFallback = .fallbackToRaw
+        decodingFallback: StructuredOutputFallback = .fallbackToRaw,
+        summaryCharacterLimit: Int = 200,
+        streamChunkSize: Int = 120
     ) {
         self.strategy = strategy
         self.mode = mode
@@ -80,6 +84,8 @@ public struct ThinkingOptions: Codable, Sendable, Equatable {
         self.reasoningRedaction = reasoningRedaction
         self.streamReasoning = streamReasoning
         self.decodingFallback = decodingFallback
+        self.summaryCharacterLimit = max(50, summaryCharacterLimit)
+        self.streamChunkSize = max(20, streamChunkSize)
     }
 }
 
@@ -642,10 +648,10 @@ public struct ThinkingSession: Sendable {
         to prompt: String,
         outputType: T.Type
     ) async throws -> T {
-        let _ = outputType
+        let note = "Generating structured response (\(outputType))"
         let response: T = try await requestStructuredResponse(
             prompt,
-            note: "Generating structured response",
+            note: note,
             streamContext: nil
         )
         return response
@@ -1291,7 +1297,7 @@ public struct ThinkingSession: Sendable {
     }
 
     private func summarizeReasoning(_ text: String) -> String {
-        let maxLength = 200
+        let maxLength = options.summaryCharacterLimit
         if text.count <= maxLength {
             return text
         }
@@ -1299,7 +1305,8 @@ public struct ThinkingSession: Sendable {
         return "Summary: \(snippet)…"
     }
 
-    private func chunkText(_ text: String, size: Int = 120) -> [String] {
+    private func chunkText(_ text: String) -> [String] {
+        let size = options.streamChunkSize
         guard size > 0 else { return [text] }
         var chunks: [String] = []
         var currentIndex = text.startIndex
