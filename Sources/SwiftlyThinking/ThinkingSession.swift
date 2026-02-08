@@ -309,9 +309,10 @@ public struct ThinkingSession: Sendable {
         let pathCount = configuration.parallelPaths
         
         // Generate dynamic path descriptions based on pathCount
+        let approaches = ["Direct", "Analytical", "Systematic", "Iterative", "Exploratory", 
+                         "Creative", "Logical", "Empirical", "Deductive", "Inductive"]
         let pathDetails = (1...pathCount).map { i -> String in
-            let approaches = ["Direct", "Analytical", "Systematic", "Iterative", "Exploratory"]
-            let approach = approaches[min(i - 1, approaches.count - 1)]
+            let approach = approaches[(i - 1) % approaches.count]
             return "Path \(i): \(approach) approach"
         }
         
