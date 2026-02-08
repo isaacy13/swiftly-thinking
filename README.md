@@ -43,6 +43,29 @@ func runThinkingSession() async throws {
 }
 ```
 
+## Guided Generation
+
+SwiftlyThinking leverages FoundationModels guided generation. Any `@Generable` type can be requested directly:
+
+```swift
+import FoundationModels
+import SwiftlyThinking
+
+@Generable
+struct ChecklistItem: Codable {
+    let title: String
+    let completed: Bool
+}
+
+@available(iOS 26, macOS 15, visionOS 26, *)
+func generateChecklist() async throws {
+    let session = LanguageModelSession()
+    var thinking = ThinkingSession(session: session)
+    let item = try await thinking.respond(to: "Create a checklist item.", outputType: ChecklistItem.self)
+    print(item)
+}
+```
+
 ## Strategies
 
 Choose a strategy to control how much reasoning is exposed:
@@ -63,13 +86,40 @@ var thinkingSession = ThinkingSession(
 - `.full` — enables refinement, alternatives, decomposition, reflection, and self-consistency voting.
 - `.light` — shorter explanations for low-latency usage.
 
-## Structured Output
+## Streaming
 
-`ReasonedResponse` is `Codable` and backed by a JSON schema (`ReasonedResponse.jsonSchema`). The session requests structured outputs by default and attempts to decode them automatically.
+Stream partial updates with `thinkAndRespondStream`:
 
-## Tool Calling & Logs
+```swift
+var thinking = ThinkingSession(options: ThinkingOptions(streamReasoning: true))
+let response = try await thinking.thinkAndRespondStream(
+    to: "Draft a product brief.",
+    onTranscriptUpdate: { entry in
+        print("Transcript update:", entry.content)
+    },
+    onReasoningUpdate: { entry in
+        print("Reasoning update:", entry.content)
+    }
+)
+```
 
-Pass tool metadata through `ThinkingSession.Configuration.tools`. The session injects tool summaries into prompts and records “thinking notes” in the transcript for full auditability.
+## Tool Execution & Logs
+
+Register executable tools with async handlers. The session executes tool calls, injects results into the transcript, and continues:
+
+```swift
+struct LookupInput: Codable { let query: String }
+struct LookupOutput: Codable { let result: String }
+
+let tool = ExecutableTool(name: "lookup", description: "Search local data") { (input: LookupInput) async throws -> LookupOutput in
+    LookupOutput(result: "Found \\(input.query)")
+}
+
+var thinking = ThinkingSession(executableTools: [tool])
+let response = try await thinking.thinkAndRespond(to: "Lookup SwiftlyThinking.")
+```
+
+The transcript includes tool outputs and reasoning notes for auditability.
 
 ## Notes
 
