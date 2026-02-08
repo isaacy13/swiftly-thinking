@@ -118,7 +118,6 @@ final class SwiftlyThinkingTests: XCTestCase {
             return ToolOutput(result: "Found \(input.query)")
         }
         var session = ThinkingSession(
-            configuration: ThinkingSession.Configuration(tools: []),
             options: ThinkingOptions(strategy: .intentOnly, reasoningRedaction: .full),
             prompts: .default,
             executableTools: [tool],

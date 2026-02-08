@@ -215,7 +215,7 @@ public struct ExecutableTool: Sendable {
         let timeoutSeconds = timeout ?? fallbackTimeout
         if let timeoutSeconds {
             guard timeoutSeconds > 0 else {
-                throw TimeoutError(seconds: timeoutSeconds, reason: "Invalid timeout value")
+                throw TimeoutError(seconds: timeoutSeconds, reason: "Timeout must be greater than 0")
             }
             return try await withTimeout(seconds: timeoutSeconds) {
                 try await handler(data)
@@ -260,7 +260,7 @@ public struct ReasonedResponse: Codable, Sendable, Equatable {
     public var finalAnswer: String
     public var confidence: ConfidenceLevel
 
-    @available(*, deprecated, message: "Use reflectionCritique")
+    @available(*, deprecated, message: "Use reflectionCritique and reflectionRevised for separate critique and revision values")
     public var reflection: String? {
         reflectionCritique
     }
@@ -284,7 +284,7 @@ public struct ReasonedResponse: Codable, Sendable, Equatable {
         self.reasoningTrace = reasoningTrace
         self.decisionsExplained = decisionsExplained
         self.alternatives = alternatives
-        self.reflectionCritique = reflectionCritique ?? reflection
+        self.reflectionCritique = resolvedReflectionCritique(reflectionCritique, reflection)
         self.reflectionRevised = reflectionRevised
         self.toolRationale = toolRationale
         self.selectionRationale = selectionRationale
@@ -352,7 +352,7 @@ public struct ReasonedResponse: Codable, Sendable, Equatable {
     public var finalAnswer: String
     public var confidence: ConfidenceLevel
 
-    @available(*, deprecated, message: "Use reflectionCritique")
+    @available(*, deprecated, message: "Use reflectionCritique and reflectionRevised for separate critique and revision values")
     public var reflection: String? {
         reflectionCritique
     }
@@ -376,7 +376,7 @@ public struct ReasonedResponse: Codable, Sendable, Equatable {
         self.reasoningTrace = reasoningTrace
         self.decisionsExplained = decisionsExplained
         self.alternatives = alternatives
-        self.reflectionCritique = reflectionCritique ?? reflection
+        self.reflectionCritique = resolvedReflectionCritique(reflectionCritique, reflection)
         self.reflectionRevised = reflectionRevised
         self.toolRationale = toolRationale
         self.selectionRationale = selectionRationale
@@ -464,6 +464,10 @@ public struct ReflectionResult: Codable, Sendable, Equatable {
     }
 }
 #endif
+
+private func resolvedReflectionCritique(_ reflectionCritique: String?, _ reflection: String?) -> String? {
+    reflectionCritique ?? reflection
+}
 
 public struct PromptTemplates: Sendable, Equatable {
     public var intentAnalysis: String
@@ -824,7 +828,7 @@ public struct ThinkingSession: Sendable {
     private mutating func reflectOnDraft(_ draft: String, streamContext: StreamContext?) async throws -> ReflectionResult {
         let prompt = render(prompts.reflection, values: ["draft": draft])
         return try await requestStructuredResponse(prompt, note: "Reflecting on draft", streamContext: streamContext, fallback: {
-            ReflectionResult(critique: "", revisedAnswer: $0)
+            ReflectionResult(critique: "Unable to extract critique", revisedAnswer: $0)
         })
     }
 
@@ -1162,13 +1166,14 @@ public struct ThinkingSession: Sendable {
         streamContext: StreamContext?
     ) async throws -> String {
         guard !executableTools.isEmpty else { return response }
+        let toolLookup = Dictionary(uniqueKeysWithValues: executableTools.map { ($0.name, $0) })
         var current = response
         var remainingCalls = options.maxToolCalls
 
         while let toolCall = parseToolCall(from: current) {
             guard remainingCalls > 0 else { throw ThinkingSessionError.toolCallLimitReached }
             remainingCalls -= 1
-            guard let tool = executableTools.first(where: { $0.name == toolCall.tool }) else {
+            guard let tool = toolLookup[toolCall.tool] else {
                 appendEntry(role: .tool, content: "Tool not found: \(toolCall.tool)", metadata: ["tool": toolCall.tool])
                 throw ThinkingSessionError.toolNotFound(toolCall.tool)
             }
@@ -1365,7 +1370,7 @@ public struct ThinkingSession: Sendable {
     }
 }
 
-private let maxTimeoutSeconds: TimeInterval = 3600
+private let maximumAllowedTimeoutSeconds: TimeInterval = 3600
 
 private struct TimeoutError: Error {
     let seconds: TimeInterval
@@ -1373,7 +1378,10 @@ private struct TimeoutError: Error {
 }
 
 private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
-    let safeSeconds = max(0, min(seconds, maxTimeoutSeconds))
+    guard seconds > 0 else {
+        throw TimeoutError(seconds: seconds, reason: "Timeout must be greater than 0")
+    }
+    let safeSeconds = min(seconds, maximumAllowedTimeoutSeconds)
     return try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()
