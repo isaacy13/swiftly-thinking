@@ -112,7 +112,7 @@ struct LookupInput: Codable { let query: String }
 struct LookupOutput: Codable { let result: String }
 
 let tool = ExecutableTool(name: "lookup", description: "Search local data") { (input: LookupInput) async throws -> LookupOutput in
-    LookupOutput(result: "Found \\(input.query)")
+    LookupOutput(result: "Found \(input.query)")
 }
 
 var thinking = ThinkingSession(executableTools: [tool])

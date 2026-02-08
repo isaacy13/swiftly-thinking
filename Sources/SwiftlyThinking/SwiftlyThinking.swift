@@ -703,17 +703,17 @@ public struct ThinkingSession: Sendable {
         }
 
         let draftResponse = try await generateDraft(prompt: refinedPrompt, intent: intentAnalysis, streamContext: streamContext)
-        var draft = draftResponse.finalAnswer
-        reasoningTrace.append(contentsOf: draftResponse.reasoningTrace.isEmpty ? [draft] : draftResponse.reasoningTrace)
+        var currentAnswer = draftResponse.finalAnswer
+        reasoningTrace.append(contentsOf: draftResponse.reasoningTrace.isEmpty ? [currentAnswer] : draftResponse.reasoningTrace)
 
         var reflectionCritique: String? = draftResponse.reflectionCritique
         var reflectionRevised: String? = draftResponse.reflectionRevised
         if profile.includesReflection {
             for _ in 0..<options.maxRefinementIterations {
-                let reflection = try await reflectOnDraft(draft, streamContext: streamContext)
+                let reflection = try await reflectOnDraft(currentAnswer, streamContext: streamContext)
                 reflectionCritique = reflection.critique
                 reflectionRevised = reflection.revisedAnswer
-                draft = reflection.revisedAnswer
+                currentAnswer = reflection.revisedAnswer
             }
         }
 
@@ -724,23 +724,23 @@ public struct ThinkingSession: Sendable {
                 intent: intentAnalysis,
                 streamContext: streamContext
             )
-            draft = selection.answer
+            currentAnswer = selection.answer
             alternatives.append(contentsOf: selection.candidates)
             selectionRationale = selection.rationale
         }
 
-        let redactedTrace = reasoningTrace.map { redactReasoning($0) }
+        let redactedReasoningTrace = reasoningTrace.map { redactReasoning($0) }
         let finalResponse = ReasonedResponse(
             intentAnalysis: draftResponse.intentAnalysis.isEmpty ? intentAnalysis : draftResponse.intentAnalysis,
             refinedPrompt: draftResponse.refinedPrompt ?? refinedPrompt,
-            reasoningTrace: redactedTrace,
+            reasoningTrace: redactedReasoningTrace,
             decisionsExplained: mergeUnique(draftResponse.decisionsExplained, decisions),
             alternatives: mergeUnique(draftResponse.alternatives, alternatives),
             reflectionCritique: reflectionCritique ?? draftResponse.reflectionCritique,
-            reflectionRevised: reflectionRevised ?? draftResponse.reflectionRevised ?? draft,
+            reflectionRevised: reflectionRevised ?? draftResponse.reflectionRevised ?? currentAnswer,
             toolRationale: draftResponse.toolRationale ?? toolRationale,
             selectionRationale: draftResponse.selectionRationale ?? selectionRationale,
-            finalAnswer: draft,
+            finalAnswer: currentAnswer,
             confidence: draftResponse.confidence
         )
 
@@ -819,7 +819,7 @@ public struct ThinkingSession: Sendable {
     private mutating func reflectOnDraft(_ draft: String, streamContext: StreamContext?) async throws -> ReflectionResult {
         let prompt = render(prompts.reflection, values: ["draft": draft])
         return try await requestStructuredResponse(prompt, note: "Reflecting on draft", streamContext: streamContext, fallback: {
-            ReflectionResult(critique: $0, revisedAnswer: $0)
+            ReflectionResult(critique: "", revisedAnswer: $0)
         })
     }
 
@@ -1120,20 +1120,16 @@ public struct ThinkingSession: Sendable {
     ) async throws -> String {
         var combined = ""
         var entryIndex: Int?
-        do {
-            for try await chunk in stream {
-                combined += chunk
-                let updatedEntry = TranscriptEntry(role: role, content: combined)
-                if let entryIndex {
-                    transcript[entryIndex] = updatedEntry
-                } else {
-                    transcript.append(updatedEntry)
-                    entryIndex = transcript.count - 1
-                }
-                await emitStreamUpdate(updatedEntry, streamTarget: streamTarget, streamContext: streamContext)
+        for try await chunk in stream {
+            combined += chunk
+            let updatedEntry = TranscriptEntry(role: role, content: combined)
+            if let entryIndex {
+                transcript[entryIndex] = updatedEntry
+            } else {
+                transcript.append(updatedEntry)
+                entryIndex = transcript.count - 1
             }
-        } catch {
-            throw error
+            await emitStreamUpdate(updatedEntry, streamTarget: streamTarget, streamContext: streamContext)
         }
         let trimmed = combined.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { throw ThinkingSessionError.emptyResponse }
@@ -1273,7 +1269,7 @@ public struct ThinkingSession: Sendable {
            let call = try? JSONDecoder().decode(ToolCall.self, from: data) {
             return call
         }
-        guard let range = trimmed.range(of: #"\{.*\}"#, options: .regularExpression) else {
+        guard let range = trimmed.range(of: #"\{.*?\}"#, options: .regularExpression) else {
             return nil
         }
         let json = String(trimmed[range])
@@ -1354,7 +1350,9 @@ private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escapin
             try await operation()
         }
         group.addTask {
-            let nanoseconds = UInt64(seconds * 1_000_000_000)
+            let maxSeconds = Double(UInt64.max) / 1_000_000_000
+            let safeSeconds = max(0, min(seconds, maxSeconds))
+            let nanoseconds = UInt64(safeSeconds * 1_000_000_000)
             try await Task.sleep(nanoseconds: nanoseconds)
             throw TimeoutError()
         }
