@@ -15,9 +15,8 @@ This example demonstrates all major features of SwiftlyThinking:
 
 ## Requirements
 
-- Swift 5.10+
-- iOS 17+ / macOS 14+ (for package compatibility)
-- Note: Real Foundation Models integration requires iOS 18+ / macOS 15+
+- Swift 6.0+
+- iOS 26+ / macOS 26+ (Foundation Models requirement)
 
 ## Building and Running
 
@@ -110,7 +109,7 @@ You can modify `main.swift` to:
 - This demo uses simulated responses since it's not connected to a real FoundationModels API
 - The structure and API demonstrated here is ready for integration with real Foundation Models
 - All timing and confidence metrics are generated for demonstration purposes
-- In production, connect to the actual FoundationModels framework on iOS 18+ / macOS 15+ devices
+- In production, connect to the actual FoundationModels framework on iOS 26+ / macOS 26+ devices
 
 ## Related
 

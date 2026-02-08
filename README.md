@@ -1,14 +1,12 @@
 # SwiftlyThinking 🧠
 
-A Swift Package that enhances on-device Apple Foundation Models with transparent, explainable reasoning capabilities.
+A Swift Package that enhances on-device Apple Foundation Models with transparent, explainable reasoning capabilities. Built for iOS 26+ and macOS 26+.
 
 ## Overview
 
 SwiftlyThinking wraps and extends the FoundationModels framework to encourage deeper reasoning in on-device Apple Intelligence models. Instead of providing direct responses, it expands on user requests with explainable, step-by-step reasoning—exposing what the model is considering, why it's making decisions, and how it refines outputs.
 
 **Key Philosophy:** Everything is achieved through intelligent prompting, chaining, and structured handling. No modifications to the underlying model—just better orchestration and visibility.
-
-**Platform Requirements:** This package is designed for use with Apple's Foundation Models framework, which requires iOS 18+ and macOS 15+ for actual model integration. The package itself is compatible with iOS 17+ and macOS 14+ to support broader adoption, but real Foundation Models functionality is only available on iOS 18+ / macOS 15+ devices.
 
 ## Features
 
@@ -51,9 +49,9 @@ Or in Xcode:
 
 ## Requirements
 
-- iOS 17.0+ / macOS 14.0+
-- Swift 5.10+
-- Xcode 15.0+
+- iOS 26.0+ / macOS 26.0+
+- Swift 6.0+
+- Xcode 16.0+
 
 ## Quick Start
 
@@ -344,4 +342,4 @@ Built for [@guideaiapp](https://github.com/guideaiapp) to explore enhanced reaso
 
 ---
 
-**Note**: This package wraps concepts from Apple's FoundationModels framework. Actual integration with LanguageModelSession APIs requires iOS 18+ / macOS 15+ SDK and proper device capabilities. The current implementation provides the architecture and can be connected to real Foundation Models APIs when available. The package itself is compatible with iOS 17+ / macOS 14+ to support broader adoption.
+**Note**: This package wraps and extends Apple's FoundationModels framework, which requires iOS 26+ and macOS 26+ for on-device Foundation Models functionality. The current implementation provides the architecture and simulated responses that demonstrate the thinking capabilities, ready for integration with real Foundation Models APIs.
