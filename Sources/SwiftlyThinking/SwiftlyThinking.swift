@@ -213,7 +213,8 @@ public struct ExecutableTool: Sendable {
     public func execute(with arguments: [String: JSONValue]?, fallbackTimeout: TimeInterval?) async throws -> String {
         let data = try JSONEncoder().encode(arguments ?? [:])
         let timeoutSeconds = timeout ?? fallbackTimeout
-        if let timeoutSeconds, timeoutSeconds > 0 {
+        if let timeoutSeconds {
+            guard timeoutSeconds > 0 else { throw TimeoutError() }
             return try await withTimeout(seconds: timeoutSeconds) {
                 try await handler(data)
             }
@@ -1350,7 +1351,7 @@ private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escapin
             try await operation()
         }
         group.addTask {
-            let maxSeconds = Double(UInt64.max) / 1_000_000_000
+            let maxSeconds = 3600.0
             let safeSeconds = max(0, min(seconds, maxSeconds))
             let nanoseconds = UInt64(safeSeconds * 1_000_000_000)
             try await Task.sleep(nanoseconds: nanoseconds)
