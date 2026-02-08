@@ -214,10 +214,8 @@ public struct ExecutableTool: Sendable {
         let data = try JSONEncoder().encode(arguments ?? [:])
         let timeoutSeconds = timeout ?? fallbackTimeout
         if let timeoutSeconds {
-            guard timeoutSeconds > 0 else {
-                throw TimeoutError(seconds: timeoutSeconds, reason: "Timeout must be greater than 0")
-            }
-            return try await withTimeout(seconds: timeoutSeconds) {
+            let validatedTimeout = try validatedTimeout(timeoutSeconds)
+            return try await withTimeout(seconds: validatedTimeout) {
                 try await handler(data)
             }
         }
@@ -513,7 +511,7 @@ public struct PromptTemplates: Sendable, Equatable {
         Refine this user prompt for clarity and specificity. Return only the refined prompt.\nPrompt: {prompt}
         """,
         chainOfThought: """
-        Think step by step. Intent: {intent}. Tools: {tools}.\nReturn a structured response with intent analysis, reasoning trace, decisions, alternatives, reflection critique and revised answer, tool rationale, selection rationale, final answer, and confidence.\nPrompt: {prompt}
+        Think step by step. Intent: {intent}. Tools: {tools}.\nReturn a structured response with intent analysis, reasoning trace, decisions, alternatives, reflection critique, revised answer, tool rationale, selection rationale, final answer, and confidence.\nPrompt: {prompt}
         """,
         decomposition: """
         Decompose the request into {max_steps} steps. Provide a numbered list with short rationales.\nPrompt: {prompt}
@@ -828,7 +826,10 @@ public struct ThinkingSession: Sendable {
     private mutating func reflectOnDraft(_ draft: String, streamContext: StreamContext?) async throws -> ReflectionResult {
         let prompt = render(prompts.reflection, values: ["draft": draft])
         return try await requestStructuredResponse(prompt, note: "Reflecting on draft", streamContext: streamContext, fallback: {
-            ReflectionResult(critique: "Unable to extract critique", revisedAnswer: $0)
+            ReflectionResult(
+                critique: "Failed to parse reflection response. Using raw response as revised answer.",
+                revisedAnswer: $0
+            )
         })
     }
 
@@ -1229,8 +1230,8 @@ public struct ThinkingSession: Sendable {
     }
 
     private func allTools() -> [ThinkingTool] {
-        let executable = executableTools.map { $0.metadata() }
-        return configuration.tools + executable
+        let executableMetadata = executableTools.map { $0.metadata() }
+        return configuration.tools + executableMetadata
     }
 
     private func currentConfiguration() -> Configuration {
@@ -1370,18 +1371,23 @@ public struct ThinkingSession: Sendable {
     }
 }
 
-private let maximumAllowedTimeoutSeconds: TimeInterval = 3600
+private let maximumAllowedTimeout: TimeInterval = 3600
 
 private struct TimeoutError: Error {
     let seconds: TimeInterval
     let reason: String
 }
 
-private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
+private func validatedTimeout(_ seconds: TimeInterval) throws -> TimeInterval {
     guard seconds > 0 else {
         throw TimeoutError(seconds: seconds, reason: "Timeout must be greater than 0")
     }
-    let safeSeconds = min(seconds, maximumAllowedTimeoutSeconds)
+    return seconds
+}
+
+private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
+    let validatedSeconds = try validatedTimeout(seconds)
+    let safeSeconds = min(validatedSeconds, maximumAllowedTimeout)
     return try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()
