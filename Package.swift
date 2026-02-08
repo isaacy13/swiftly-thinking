@@ -5,22 +5,27 @@ import PackageDescription
 
 let package = Package(
     name: "swiftly-thinking",
+    platforms: [
+        .iOS(.v26),
+        .macOS(.v15),
+        .visionOS(.v26),
+    ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "swiftly-thinking",
-            targets: ["swiftly-thinking"]
+            name: "SwiftlyThinking",
+            targets: ["SwiftlyThinking"]
         ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
         // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "swiftly-thinking"
+            name: "SwiftlyThinking"
         ),
         .testTarget(
-            name: "swiftly-thinkingTests",
-            dependencies: ["swiftly-thinking"]
+            name: "SwiftlyThinkingTests",
+            dependencies: ["SwiftlyThinking"]
         ),
     ]
 )
