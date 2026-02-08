@@ -75,7 +75,6 @@ final class SwiftlyThinkingTests: XCTestCase {
         let structured = """
         {"intent_analysis":"Intent analysis","reasoning_trace":["Step 1"],"decisions_explained":["Decision"],"final_answer":"Final answer","confidence":"high"}
         """
-        XCTAssertTrue(structured.contains("Step 1"))
         let mock = MockClient(responses: ["Intent analysis", structured])
         var session = ThinkingSession(options: ThinkingOptions(strategy: .cot), client: mock)
         let response = try await session.thinkAndRespond(to: "Summarize this")

@@ -214,7 +214,9 @@ public struct ExecutableTool: Sendable {
         let data = try JSONEncoder().encode(arguments ?? [:])
         let timeoutSeconds = timeout ?? fallbackTimeout
         if let timeoutSeconds {
-            guard timeoutSeconds > 0 else { throw TimeoutError() }
+            guard timeoutSeconds > 0 else {
+                throw TimeoutError(seconds: timeoutSeconds, reason: "Invalid timeout value")
+            }
             return try await withTimeout(seconds: timeoutSeconds) {
                 try await handler(data)
             }
@@ -258,6 +260,7 @@ public struct ReasonedResponse: Codable, Sendable, Equatable {
     public var finalAnswer: String
     public var confidence: ConfidenceLevel
 
+    @available(*, deprecated, message: "Use reflectionCritique")
     public var reflection: String? {
         reflectionCritique
     }
@@ -349,6 +352,7 @@ public struct ReasonedResponse: Codable, Sendable, Equatable {
     public var finalAnswer: String
     public var confidence: ConfidenceLevel
 
+    @available(*, deprecated, message: "Use reflectionCritique")
     public var reflection: String? {
         reflectionCritique
     }
@@ -1270,12 +1274,30 @@ public struct ThinkingSession: Sendable {
            let call = try? JSONDecoder().decode(ToolCall.self, from: data) {
             return call
         }
-        guard let range = trimmed.range(of: #"\{.*?\}"#, options: .regularExpression) else {
+        guard let json = extractJSONObject(from: trimmed),
+              let data = json.data(using: .utf8) else {
             return nil
         }
-        let json = String(trimmed[range])
-        if let data = json.data(using: .utf8) {
-            return try? JSONDecoder().decode(ToolCall.self, from: data)
+        return try? JSONDecoder().decode(ToolCall.self, from: data)
+    }
+
+    private func extractJSONObject(from text: String) -> String? {
+        var depth = 0
+        var startIndex: String.Index?
+        for index in text.indices {
+            let character = text[index]
+            if character == "{" {
+                if depth == 0 {
+                    startIndex = index
+                }
+                depth += 1
+            } else if character == "}" {
+                guard depth > 0 else { continue }
+                depth -= 1
+                if depth == 0, let startIndex {
+                    return String(text[startIndex...index])
+                }
+            }
         }
         return nil
     }
@@ -1299,7 +1321,7 @@ public struct ThinkingSession: Sendable {
             return text
         }
         let snippet = String(text.prefix(maxLength))
-        return "Summary: \(snippet)…"
+        return "Summary: \(snippet)..."
     }
 
     private func chunkText(_ text: String) -> [String] {
@@ -1343,21 +1365,27 @@ public struct ThinkingSession: Sendable {
     }
 }
 
-private struct TimeoutError: Error {}
+private let maxTimeoutSeconds: TimeInterval = 3600
+
+private struct TimeoutError: Error {
+    let seconds: TimeInterval
+    let reason: String
+}
 
 private func withTimeout<T: Sendable>(seconds: TimeInterval, operation: @escaping @Sendable () async throws -> T) async throws -> T {
-    try await withThrowingTaskGroup(of: T.self) { group in
+    let safeSeconds = max(0, min(seconds, maxTimeoutSeconds))
+    return try await withThrowingTaskGroup(of: T.self) { group in
         group.addTask {
             try await operation()
         }
         group.addTask {
-            let maxSeconds = 3600.0
-            let safeSeconds = max(0, min(seconds, maxSeconds))
             let nanoseconds = UInt64(safeSeconds * 1_000_000_000)
             try await Task.sleep(nanoseconds: nanoseconds)
-            throw TimeoutError()
+            throw TimeoutError(seconds: safeSeconds, reason: "Timed out")
         }
-        let result = try await group.next()!
+        guard let result = try await group.next() else {
+            throw TimeoutError(seconds: safeSeconds, reason: "No result returned")
+        }
         group.cancelAll()
         return result
     }
